@@ -47,7 +47,7 @@ main{max-width:680px; margin:0 auto; padding:20px 16px 60px;}
 .card h2{font-size:1rem; margin:0 0 14px; color:var(--rootBlue);}
 :root[data-theme="dark"] .card h2, @media (prefers-color-scheme:dark){.card h2{color:#7f92e0;}}
 label{display:block; font-weight:600; font-size:.85rem; margin-bottom:6px;}
-select, input[type=text]{
+select, input[type=text], input[type=number]{
   width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px;
   background:var(--card); color:var(--text); font-size:.9rem;
 }
@@ -61,8 +61,9 @@ select, input[type=text]{
 .icon-btn:hover{border-color:var(--rootBlue);}
 .add-inline{display:none; gap:8px; margin-top:8px;}
 .add-inline.show{display:flex;}
-.ram-slot{display:flex; gap:8px; margin-bottom:8px;}
-.ram-slot select{flex:1;}
+.ram-slot{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+.ram-slot select, .ram-slot input[type=text], .ram-slot input[type=number]{flex:1;}
+.unit-suffix{color:var(--muted); font-size:.85rem; white-space:nowrap; flex:0 0 auto;}
 .btn{
   border:none; border-radius:8px; padding:11px 16px; font-size:.92rem; font-weight:600;
   cursor:pointer;
@@ -167,7 +168,7 @@ select:focus, input:focus, button:focus-visible{
 
   <div class="card">
     <h2 class="step"><span class="step-badge">2</span> Memória RAM</h2>
-    <p class="card-desc">Adicione um pente por vez. Um pente sem tipo e tamanho selecionados é ignorado na etiqueta.</p>
+    <p class="card-desc">Adicione um pente por vez. Digite só o número — o "GB" é adicionado automaticamente. Um pente sem tipo e tamanho é ignorado.</p>
     <div id="ramSlots"></div>
     <button type="button" class="icon-btn" id="addRamSlot">+ Adicionar Pente de Memória</button>
   </div>
@@ -185,7 +186,7 @@ select:focus, input:focus, button:focus-visible{
 
   <div class="card">
     <h2 class="step"><span class="step-badge">4</span> Armazenamento (HD/SSD)</h2>
-    <p class="card-desc">Escolha o tipo, a marca (ou cadastre uma nova) e o tamanho de cada disco. Um disco sem tamanho selecionado é ignorado.</p>
+    <p class="card-desc">Escolha o tipo, a marca (ou cadastre uma nova) e digite só o número do tamanho — o "GB" é adicionado automaticamente. Um disco sem tamanho é ignorado.</p>
     <div id="storageSlots"></div>
     <button type="button" class="icon-btn" id="addStorageSlot">+ Adicionar Armazenamento</button>
     <div class="manage-list" id="chips-storage"></div>
@@ -302,10 +303,6 @@ document.addEventListener('click', (e) => {
 });
 
 let storageCount = 0;
-function storageSizeOptions(){
-  return ['50GB','60GB','70GB','80GB','128GB','240GB','256GB','480GB','500GB','512GB','1TB','2TB','4TB']
-    .map(v => `<option>${v}</option>`).join('');
-}
 function renderStorageBrandSelects(){
   const list = loadList('storage');
   document.querySelectorAll('.storage-brand').forEach(sel => {
@@ -331,10 +328,8 @@ function addStorageSlot(){
       <option value="">Marca...</option>
     </select>
     <button type="button" class="icon-btn" data-add-storage="${id}">+ Novo</button>
-    <select class="storage-size">
-      <option value="">Tamanho...</option>
-      ${storageSizeOptions()}
-    </select>
+    <input type="number" class="storage-size" placeholder="Tamanho (ex: 256)" min="1" inputmode="numeric" />
+    <span class="unit-suffix">GB</span>
     <button type="button" class="btn-danger-outline" title="Remover disco" aria-label="Remover este disco">×</button>
     <div class="add-inline" id="addInline-${id}" style="flex-basis:100%;">
       <input type="text" id="addInput-${id}" placeholder="Digite a marca..." />
@@ -360,10 +355,8 @@ function addRamSlot(){
       <option value="">Tipo...</option>
       <option>DDR</option><option>DDR2</option><option>DDR3</option><option>DDR4</option><option>DDR5</option>
     </select>
-    <select class="ram-size">
-      <option value="">Tamanho...</option>
-      <option>1GB</option><option>2GB</option><option>4GB</option><option>8GB</option><option>16GB</option><option>32GB</option>
-    </select>
+    <input type="number" class="ram-size" placeholder="Tamanho (ex: 8)" min="1" inputmode="numeric" />
+    <span class="unit-suffix">GB</span>
     <button type="button" class="btn-danger-outline" title="Remover pente" aria-label="Remover este pente de memória">×</button>
   `;
   wrap.querySelector('button').addEventListener('click', () => {
@@ -397,8 +390,8 @@ function gerarEtiqueta(){
   const ramInfo = []; let firstType = '';
   slots.forEach(s => {
     const type = s.querySelector('.ram-type').value;
-    const size = s.querySelector('.ram-size').value;
-    if(type && size){ ramInfo.push(`${size} ${type}`); if(!firstType) firstType = type; }
+    const sizeNum = s.querySelector('.ram-size').value.trim();
+    if(type && sizeNum){ ramInfo.push(`${sizeNum}GB ${type}`); if(!firstType) firstType = type; }
   });
   html += `<h4>Memória RAM${firstType ? ' (' + firstType + ')' : ''}</h4>`;
   html += ramInfo.length
@@ -413,9 +406,9 @@ function gerarEtiqueta(){
   storageSlots.forEach(s => {
     const type = s.querySelector('.storage-type').value;
     const brand = s.querySelector('.storage-brand').value;
-    const size = s.querySelector('.storage-size').value;
-    if(size){
-      let label = size;
+    const sizeNum = s.querySelector('.storage-size').value.trim();
+    if(sizeNum){
+      let label = `${sizeNum}GB`;
       if(brand) label += ` ${brand}`;
       if(type) label += ` (${type})`;
       storageInfo.push(label);
