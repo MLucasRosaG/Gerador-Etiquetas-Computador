@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Gerador de Etiquetas - Computador</title>
+<style>
+:root{
+  --rootBlue:#213E98;
+  --rootWhite:#EEEEEE;
+  --bg: var(--rootWhite);
+  --card: #ffffff;
+  --text: #1c1e26;
+  --muted:#6b7280;
+  --border:#d7dae3;
+  --ok:#1d8a4a;
+  --bad:#c0392b;
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12141c; --card:#1b1e29; --text:#EEEEEE; --muted:#9aa0ae; --border:#2b2f3d;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12141c; --card:#1b1e29; --text:#EEEEEE; --muted:#9aa0ae; --border:#2b2f3d;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+header{
+  background:var(--rootBlue); color:var(--rootWhite);
+  padding:18px 20px calc(18px + env(safe-area-inset-top,0px));
+  padding-top:calc(18px + env(safe-area-inset-top,0px));
+}
+header h1{margin:0; font-size:1.25rem;}
+header p{margin:4px 0 0; font-size:.85rem; opacity:.85;}
+main{max-width:680px; margin:0 auto; padding:20px 16px 60px;}
+.card{
+  background:var(--card); border:1px solid var(--border); border-radius:12px;
+  padding:18px; margin-bottom:18px;
+}
+.card h2{font-size:1rem; margin:0 0 14px; color:var(--rootBlue);}
+:root[data-theme="dark"] .card h2, @media (prefers-color-scheme:dark){.card h2{color:#7f92e0;}}
+label{display:block; font-weight:600; font-size:.85rem; margin-bottom:6px;}
+select, input[type=text]{
+  width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px;
+  background:var(--card); color:var(--text); font-size:.9rem;
+}
+.field{margin-bottom:14px;}
+.row{display:flex; gap:8px; align-items:center;}
+.row select{flex:1;}
+.icon-btn{
+  border:1px solid var(--border); background:transparent; color:var(--text);
+  border-radius:8px; padding:9px 11px; cursor:pointer; font-size:.9rem; white-space:nowrap;
+}
+.icon-btn:hover{border-color:var(--rootBlue);}
+.add-inline{display:none; gap:8px; margin-top:8px;}
+.add-inline.show{display:flex;}
+.ram-slot{display:flex; gap:8px; margin-bottom:8px;}
+.ram-slot select{flex:1;}
+.btn{
+  border:none; border-radius:8px; padding:11px 16px; font-size:.92rem; font-weight:600;
+  cursor:pointer;
+}
+.btn-primary{background:var(--rootBlue); color:var(--rootWhite); width:100%;}
+.btn-primary:hover{opacity:.92;}
+.btn-outline{background:transparent; border:1px solid var(--rootBlue); color:var(--rootBlue);}
+.btn-danger-outline{background:transparent; border:1px solid var(--bad); color:var(--bad); padding:9px 11px; border-radius:8px; cursor:pointer;}
+.hint{font-size:.75rem; color:var(--muted); margin-top:6px;}
+#labelPreview{
+  border:2px dashed var(--border); border-radius:10px; padding:18px;
+  font-family:"Courier New",monospace; background:var(--bg);
+}
+#labelPreview h3{margin:0 0 10px; font-size:1.1rem;}
+#labelPreview h4{margin:10px 0 4px; font-size:.95rem;}
+#labelPreview p{margin:0 0 4px 14px; font-size:.9rem;}
+.ok{color:var(--ok); font-weight:700;}
+.bad{color:var(--bad); font-weight:700;}
+#previewCard{display:none;}
+.manage-list{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+.chip{
+  display:flex; align-items:center; gap:6px; background:var(--bg); border:1px solid var(--border);
+  border-radius:16px; padding:4px 6px 4px 10px; font-size:.78rem;
+}
+.chip button{border:none; background:transparent; color:var(--bad); cursor:pointer; font-size:.85rem; line-height:1;}
+@media print{
+  body *{visibility:hidden;}
+  #labelPreview, #labelPreview *{visibility:visible;}
+  #labelPreview{position:absolute; top:0; left:0; width:100%; border:none; padding:0; font-size:14pt;}
+  header,.card > *:not(#labelPreview), .btn, #printBtn{display:none !important;}
+}
+@page{size:A4 landscape; margin:1.5cm;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Gerador de Etiquetas de Computador</h1>
+</header>
+
+<main>
+  <div class="card">
+    <h2>Placa-Mãe e Processador</h2>
+
+    <div class="field">
+      <label for="placaMae">Placa-Mãe</label>
+      <div class="row">
+        <select id="placaMae"></select>
+        <button type="button" class="icon-btn" data-add="placaMae">+ Novo</button>
+      </div>
+      <div class="add-inline" id="addInline-placaMae">
+        <input type="text" id="addInput-placaMae" placeholder="Digite o modelo..." />
+        <button type="button" class="btn btn-outline" data-save="placaMae">Salvar</button>
+      </div>
+      <div class="manage-list" id="chips-placaMae"></div>
+    </div>
+
+    <div class="field">
+      <label for="processador">Processador</label>
+      <div class="row">
+        <select id="processador"></select>
+        <button type="button" class="icon-btn" data-add="processador">+ Novo</button>
+      </div>
+      <div class="add-inline" id="addInline-processador">
+        <input type="text" id="addInput-processador" placeholder="Digite o modelo..." />
+        <button type="button" class="btn btn-outline" data-save="processador">Salvar</button>
+      </div>
+      <div class="manage-list" id="chips-processador"></div>
+    </div>
+    <p class="hint">Itens adicionados aqui ficam salvos neste navegador e aparecem nas próximas etiquetas. Use o "x" no chip para remover um item da lista.</p>
+  </div>
+
+  <div class="card">
+    <h2>Memória RAM</h2>
+    <div id="ramSlots"></div>
+    <button type="button" class="icon-btn" id="addRamSlot">+ Adicionar Pente de Memória</button>
+  </div>
+
+  <div class="card">
+    <h2>Fonte de Alimentação</h2>
+    <div class="field">
+      <label for="fonte">Fonte de Alimentação</label>
+      <select id="fonte">
+        <option value="AUSENTE">AUSENTE</option>
+        <option value="Presente">Presente</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Armazenamento (HD/SSD)</h2>
+    <div id="storageSlots"></div>
+    <button type="button" class="icon-btn" id="addStorageSlot">+ Adicionar Armazenamento</button>
+    <div class="manage-list" id="chips-storage"></div>
+    <p class="hint">Marcas adicionadas ficam salvas neste navegador.</p>
+  </div>
+
+  <button type="button" class="btn btn-primary" id="generateBtn">Gerar Etiqueta</button>
+
+  <div class="card" id="previewCard">
+    <h2>Visualização da Etiqueta</h2>
+    <div id="labelPreview"></div>
+    <button type="button" class="btn btn-outline" id="printBtn" style="margin-top:12px;">Imprimir Etiqueta</button>
+  </div>
+</main>
+
+<script>
+const LISTS = { placaMae: 'etq_placaMae_list', processador: 'etq_processador_list', storage: 'etq_storage_list' };
+
+function loadList(key){
+  try{
+    const raw = localStorage.getItem(LISTS[key]);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+function saveList(key, list){
+  try{ localStorage.setItem(LISTS[key], JSON.stringify(list)); }catch(e){ /* storage indisponível */ }
+}
+function renderSelect(key){
+  const select = document.getElementById(key);
+  const current = select.value;
+  const list = loadList(key);
+  select.innerHTML = '<option value="AUSENTE">AUSENTE</option>' +
+    list.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  if(list.includes(current) || current === 'AUSENTE') select.value = current;
+  renderChips(key, list);
+}
+function renderChips(key, list){
+  const box = document.getElementById('chips-' + key);
+  box.innerHTML = list.map(v => `
+    <span class="chip">${escapeHtml(v)}<button type="button" data-remove="${key}" data-value="${escapeHtml(v)}">×</button></span>
+  `).join('');
+}
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+['placaMae','processador'].forEach(key => renderSelect(key));
+
+document.querySelectorAll('[data-add]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('addInline-' + btn.dataset.add).classList.toggle('show');
+  });
+});
+document.querySelectorAll('[data-save]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.save;
+    const input = document.getElementById('addInput-' + key);
+    const value = input.value.trim();
+    if(!value) return;
+    const list = loadList(key);
+    if(!list.includes(value)){ list.push(value); saveList(key, list); }
+    renderSelect(key);
+    document.getElementById(key).value = value;
+    input.value = '';
+    document.getElementById('addInline-' + key).classList.remove('show');
+  });
+});
+document.addEventListener('click', (e) => {
+  if(e.target.matches('[data-remove]')){
+    const key = e.target.dataset.remove;
+    const value = e.target.dataset.value;
+    let list = loadList(key).filter(v => v !== value);
+    saveList(key, list);
+    if(key === 'storage'){ renderStorageBrandSelects(); } else { renderSelect(key); }
+  }
+  if(e.target.matches('[data-add-storage]')){
+    document.getElementById('addInline-' + e.target.dataset.addStorage).classList.toggle('show');
+  }
+  if(e.target.matches('[data-save-storage]')){
+    const id = e.target.dataset.saveStorage;
+    const input = document.getElementById('addInput-' + id);
+    const value = input.value.trim();
+    if(!value) return;
+    const list = loadList('storage');
+    if(!list.includes(value)){ list.push(value); saveList('storage', list); }
+    renderStorageBrandSelects();
+    document.querySelector(`.storage-brand[data-slot="${id}"]`).value = value;
+    input.value = '';
+    document.getElementById('addInline-' + id).classList.remove('show');
+  }
+});
+
+let storageCount = 0;
+function storageSizeOptions(){
+  return ['120GB','128GB','240GB','256GB','480GB','500GB','512GB','1TB','2TB','4TB']
+    .map(v => `<option>${v}</option>`).join('');
+}
+function renderStorageBrandSelects(){
+  const list = loadList('storage');
+  document.querySelectorAll('.storage-brand').forEach(sel => {
+    const current = sel.value;
+    sel.innerHTML = '<option value="">Marca...</option>' + list.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+    if(list.includes(current)) sel.value = current;
+  });
+  renderChips('storage', list);
+}
+function addStorageSlot(){
+  const container = document.getElementById('storageSlots');
+  const id = 'storage-' + (storageCount++);
+  const wrap = document.createElement('div');
+  wrap.className = 'ram-slot';
+  wrap.style.flexWrap = 'wrap';
+  wrap.innerHTML = `
+    <select class="storage-type">
+      <option value="HD">HD</option>
+      <option value="SSD">SSD</option>
+      <option value="NVMe">NVMe</option>
+    </select>
+    <select class="storage-brand" data-slot="${id}">
+      <option value="">Marca...</option>
+    </select>
+    <button type="button" class="icon-btn" data-add-storage="${id}">+ Novo</button>
+    <select class="storage-size">
+      <option value="">Tamanho...</option>
+      ${storageSizeOptions()}
+    </select>
+    <button type="button" class="btn-danger-outline" title="Remover">×</button>
+    <div class="add-inline" id="addInline-${id}" style="flex-basis:100%;">
+      <input type="text" id="addInput-${id}" placeholder="Digite a marca..." />
+      <button type="button" class="btn btn-outline" data-save-storage="${id}">Salvar</button>
+    </div>
+  `;
+  wrap.querySelector('.btn-danger-outline').addEventListener('click', () => wrap.remove());
+  container.appendChild(wrap);
+  renderStorageBrandSelects();
+}
+document.getElementById('addStorageSlot').addEventListener('click', addStorageSlot);
+addStorageSlot();
+
+function addRamSlot(){
+  const container = document.getElementById('ramSlots');
+  const wrap = document.createElement('div');
+  wrap.className = 'ram-slot';
+  wrap.innerHTML = `
+    <select class="ram-type">
+      <option value="">Tipo...</option>
+      <option>DDR</option><option>DDR2</option><option>DDR3</option><option>DDR4</option><option>DDR5</option>
+    </select>
+    <select class="ram-size">
+      <option value="">Tamanho...</option>
+      <option>1GB</option><option>2GB</option><option>4GB</option><option>8GB</option><option>16GB</option><option>32GB</option>
+    </select>
+    <button type="button" class="btn-danger-outline" title="Remover">×</button>
+  `;
+  wrap.querySelector('button').addEventListener('click', () => wrap.remove());
+  container.appendChild(wrap);
+}
+document.getElementById('addRamSlot').addEventListener('click', addRamSlot);
+addRamSlot();
+
+function gerarEtiqueta(){
+  const placaMae = document.getElementById('placaMae').value;
+  const processador = document.getElementById('processador').value;
+  const fonte = document.getElementById('fonte').value;
+
+  let html = '<h3>Componentes</h3>';
+
+  html += '<h4>Placa-Mãe</h4>';
+  html += placaMae === 'AUSENTE'
+    ? '<p><span class="bad">✗</span> Ausente</p>'
+    : `<p><span class="ok">✓</span> Presente (Modelo: ${escapeHtml(placaMae)})</p>`;
+
+  html += '<h4>Processador</h4>';
+  html += processador === 'AUSENTE'
+    ? '<p><span class="bad">✗</span> Ausente</p>'
+    : `<p><span class="ok">✓</span> Presente (Modelo: ${escapeHtml(processador)})</p>`;
+
+  const slots = document.querySelectorAll('.ram-slot');
+  const ramInfo = []; let firstType = '';
+  slots.forEach(s => {
+    const type = s.querySelector('.ram-type').value;
+    const size = s.querySelector('.ram-size').value;
+    if(type && size){ ramInfo.push(`${size} ${type}`); if(!firstType) firstType = type; }
+  });
+  html += `<h4>Memória RAM${firstType ? ' (' + firstType + ')' : ''}</h4>`;
+  html += ramInfo.length
+    ? `<p><span class="ok">✓</span> Presente (${ramInfo.join(' + ')})</p>`
+    : '<p><span class="bad">✗</span> Ausente</p>';
+
+  html += '<h4>Fonte de Alimentação</h4>';
+  html += fonte === 'AUSENTE' ? '<p><span class="bad">✗</span> Ausente</p>' : '<p><span class="ok">✓</span> Presente</p>';
+
+  const storageSlots = document.querySelectorAll('#storageSlots .ram-slot');
+  const storageInfo = [];
+  storageSlots.forEach(s => {
+    const type = s.querySelector('.storage-type').value;
+    const brand = s.querySelector('.storage-brand').value;
+    const size = s.querySelector('.storage-size').value;
+    if(size){
+      let label = size;
+      if(brand) label += ` ${brand}`;
+      if(type) label += ` (${type})`;
+      storageInfo.push(label);
+    }
+  });
+  html += '<h4>Armazenamento (HD/SSD)</h4>';
+  html += storageInfo.length
+    ? `<p><span class="ok">✓</span> Presente (${storageInfo.join(' + ')})</p>`
+    : '<p><span class="bad">✗</span> Ausente</p>';
+
+  document.getElementById('labelPreview').innerHTML = html;
+  document.getElementById('previewCard').style.display = 'block';
+  document.getElementById('previewCard').scrollIntoView({behavior:'smooth'});
+}
+document.getElementById('generateBtn').addEventListener('click', gerarEtiqueta);
+document.getElementById('printBtn').addEventListener('click', () => window.print());
+</script>
+</body>
+</html>
