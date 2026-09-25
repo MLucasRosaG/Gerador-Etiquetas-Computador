@@ -95,6 +95,36 @@ select, input[type=text]{
   header,.card > *:not(#labelPreview), .btn, #printBtn{display:none !important;}
 }
 @page{size:A4 landscape; margin:1.5cm;}
+
+/* --- Melhorias de IHC --- */
+h2.step{display:flex; align-items:center; gap:10px;}
+.step-badge{
+  flex:0 0 auto; width:24px; height:24px; border-radius:50%;
+  background:var(--rootBlue); color:var(--rootWhite); font-size:.78rem;
+  display:flex; align-items:center; justify-content:center; font-weight:700;
+}
+.card-desc{font-size:.8rem; color:var(--muted); margin:-8px 0 14px;}
+.empty-state{font-size:.78rem; color:var(--muted); font-style:italic; padding:2px 0;}
+select:focus, input:focus, button:focus-visible{
+  outline:2px solid var(--rootBlue); outline-offset:2px;
+}
+#toastContainer{
+  position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom,0px));
+  transform:translateX(-50%); display:flex; flex-direction:column; gap:8px; z-index:999;
+  width:min(92vw, 420px);
+}
+.toast{
+  padding:11px 14px; border-radius:9px; font-size:.85rem; color:#fff; box-shadow:0 4px 14px rgba(0,0,0,.18);
+  display:flex; align-items:flex-start; gap:8px; animation:toastIn .18s ease-out;
+}
+.toast-info{background:var(--rootBlue);}
+.toast-success{background:var(--ok);}
+.toast-error{background:var(--bad);}
+@keyframes toastIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+.summary-warning{
+  margin-top:10px; padding:10px 12px; border-radius:8px; font-size:.82rem;
+  background:rgba(192,57,43,.1); color:var(--bad); border:1px solid rgba(192,57,43,.3);
+}
 </style>
 </head>
 <body>
@@ -104,7 +134,8 @@ select, input[type=text]{
 
 <main>
   <div class="card">
-    <h2>Placa-Mãe e Processador</h2>
+    <h2 class="step"><span class="step-badge">1</span> Placa-Mãe e Processador</h2>
+    <p class="card-desc">Selecione na lista ou clique em "+ Novo" para cadastrar um modelo que ainda não está salvo.</p>
 
     <div class="field">
       <label for="placaMae">Placa-Mãe</label>
@@ -135,13 +166,14 @@ select, input[type=text]{
   </div>
 
   <div class="card">
-    <h2>Memória RAM</h2>
+    <h2 class="step"><span class="step-badge">2</span> Memória RAM</h2>
+    <p class="card-desc">Adicione um pente por vez. Um pente sem tipo e tamanho selecionados é ignorado na etiqueta.</p>
     <div id="ramSlots"></div>
     <button type="button" class="icon-btn" id="addRamSlot">+ Adicionar Pente de Memória</button>
   </div>
 
   <div class="card">
-    <h2>Fonte de Alimentação</h2>
+    <h2 class="step"><span class="step-badge">3</span> Fonte de Alimentação</h2>
     <div class="field">
       <label for="fonte">Fonte de Alimentação</label>
       <select id="fonte">
@@ -152,21 +184,24 @@ select, input[type=text]{
   </div>
 
   <div class="card">
-    <h2>Armazenamento (HD/SSD)</h2>
+    <h2 class="step"><span class="step-badge">4</span> Armazenamento (HD/SSD)</h2>
+    <p class="card-desc">Escolha o tipo, a marca (ou cadastre uma nova) e o tamanho de cada disco. Um disco sem tamanho selecionado é ignorado.</p>
     <div id="storageSlots"></div>
     <button type="button" class="icon-btn" id="addStorageSlot">+ Adicionar Armazenamento</button>
     <div class="manage-list" id="chips-storage"></div>
     <p class="hint">Marcas adicionadas ficam salvas neste navegador.</p>
   </div>
 
-  <button type="button" class="btn btn-primary" id="generateBtn">Gerar Etiqueta</button>
+  <button type="button" class="btn btn-primary" id="generateBtn">5. Gerar Etiqueta</button>
 
   <div class="card" id="previewCard">
-    <h2>Visualização da Etiqueta</h2>
+    <h2 class="step"><span class="step-badge">✓</span> Visualização da Etiqueta</h2>
     <div id="labelPreview"></div>
     <button type="button" class="btn btn-outline" id="printBtn" style="margin-top:12px;">Imprimir Etiqueta</button>
   </div>
 </main>
+
+<div id="toastContainer" role="status" aria-live="polite"></div>
 
 <script>
 const LISTS = { placaMae: 'etq_placaMae_list', processador: 'etq_processador_list', storage: 'etq_storage_list' };
@@ -191,12 +226,22 @@ function renderSelect(key){
 }
 function renderChips(key, list){
   const box = document.getElementById('chips-' + key);
-  box.innerHTML = list.map(v => `
-    <span class="chip">${escapeHtml(v)}<button type="button" data-remove="${key}" data-value="${escapeHtml(v)}">×</button></span>
-  `).join('');
+  box.innerHTML = list.length
+    ? list.map(v => `
+        <span class="chip">${escapeHtml(v)}<button type="button" data-remove="${key}" data-value="${escapeHtml(v)}" aria-label="Remover ${escapeHtml(v)}">×</button></span>
+      `).join('')
+    : '<span class="empty-state">Nenhum item salvo ainda — cadastre um com "+ Novo".</span>';
 }
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function showToast(message, type){
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + (type || 'info');
+  el.textContent = message;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 3800);
 }
 
 ['placaMae','processador'].forEach(key => renderSelect(key));
@@ -211,9 +256,14 @@ document.querySelectorAll('[data-save]').forEach(btn => {
     const key = btn.dataset.save;
     const input = document.getElementById('addInput-' + key);
     const value = input.value.trim();
-    if(!value) return;
+    if(!value){ showToast('Digite um nome antes de salvar.', 'error'); input.focus(); return; }
     const list = loadList(key);
-    if(!list.includes(value)){ list.push(value); saveList(key, list); }
+    if(list.includes(value)){
+      showToast('Esse item já está na lista — selecionando.', 'info');
+    }else{
+      list.push(value); saveList(key, list);
+      showToast(`"${value}" salvo na lista.`, 'success');
+    }
     renderSelect(key);
     document.getElementById(key).value = value;
     input.value = '';
@@ -227,6 +277,7 @@ document.addEventListener('click', (e) => {
     let list = loadList(key).filter(v => v !== value);
     saveList(key, list);
     if(key === 'storage'){ renderStorageBrandSelects(); } else { renderSelect(key); }
+    showToast(`"${value}" removido da lista.`, 'info');
   }
   if(e.target.matches('[data-add-storage]')){
     document.getElementById('addInline-' + e.target.dataset.addStorage).classList.toggle('show');
@@ -235,9 +286,14 @@ document.addEventListener('click', (e) => {
     const id = e.target.dataset.saveStorage;
     const input = document.getElementById('addInput-' + id);
     const value = input.value.trim();
-    if(!value) return;
+    if(!value){ showToast('Digite uma marca antes de salvar.', 'error'); input.focus(); return; }
     const list = loadList('storage');
-    if(!list.includes(value)){ list.push(value); saveList('storage', list); }
+    if(list.includes(value)){
+      showToast('Essa marca já está na lista — selecionando.', 'info');
+    }else{
+      list.push(value); saveList('storage', list);
+      showToast(`"${value}" salva na lista de marcas.`, 'success');
+    }
     renderStorageBrandSelects();
     document.querySelector(`.storage-brand[data-slot="${id}"]`).value = value;
     input.value = '';
@@ -279,13 +335,16 @@ function addStorageSlot(){
       <option value="">Tamanho...</option>
       ${storageSizeOptions()}
     </select>
-    <button type="button" class="btn-danger-outline" title="Remover">×</button>
+    <button type="button" class="btn-danger-outline" title="Remover disco" aria-label="Remover este disco">×</button>
     <div class="add-inline" id="addInline-${id}" style="flex-basis:100%;">
       <input type="text" id="addInput-${id}" placeholder="Digite a marca..." />
       <button type="button" class="btn btn-outline" data-save-storage="${id}">Salvar</button>
     </div>
   `;
-  wrap.querySelector('.btn-danger-outline').addEventListener('click', () => wrap.remove());
+  wrap.querySelector('.btn-danger-outline').addEventListener('click', () => {
+    wrap.remove();
+    showToast('Disco removido.', 'info');
+  });
   container.appendChild(wrap);
   renderStorageBrandSelects();
 }
@@ -305,15 +364,19 @@ function addRamSlot(){
       <option value="">Tamanho...</option>
       <option>1GB</option><option>2GB</option><option>4GB</option><option>8GB</option><option>16GB</option><option>32GB</option>
     </select>
-    <button type="button" class="btn-danger-outline" title="Remover">×</button>
+    <button type="button" class="btn-danger-outline" title="Remover pente" aria-label="Remover este pente de memória">×</button>
   `;
-  wrap.querySelector('button').addEventListener('click', () => wrap.remove());
+  wrap.querySelector('button').addEventListener('click', () => {
+    wrap.remove();
+    showToast('Pente de memória removido.', 'info');
+  });
   container.appendChild(wrap);
 }
 document.getElementById('addRamSlot').addEventListener('click', addRamSlot);
 addRamSlot();
 
 function gerarEtiqueta(){
+ try{
   const placaMae = document.getElementById('placaMae').value;
   const processador = document.getElementById('processador').value;
   const fonte = document.getElementById('fonte').value;
@@ -330,7 +393,7 @@ function gerarEtiqueta(){
     ? '<p><span class="bad">✗</span> Ausente</p>'
     : `<p><span class="ok">✓</span> Presente (Modelo: ${escapeHtml(processador)})</p>`;
 
-  const slots = document.querySelectorAll('.ram-slot');
+  const slots = document.querySelectorAll('#ramSlots .ram-slot');
   const ramInfo = []; let firstType = '';
   slots.forEach(s => {
     const type = s.querySelector('.ram-type').value;
@@ -363,12 +426,26 @@ function gerarEtiqueta(){
     ? `<p><span class="ok">✓</span> Presente (${storageInfo.join(' + ')})</p>`
     : '<p><span class="bad">✗</span> Ausente</p>';
 
+  const tudoAusente = placaMae === 'AUSENTE' && processador === 'AUSENTE' &&
+    fonte === 'AUSENTE' && ramInfo.length === 0 && storageInfo.length === 0;
+  if(tudoAusente){
+    html += '<div class="summary-warning">⚠ Nenhum componente foi marcado como presente. Confira se preencheu os campos corretos antes de imprimir.</div>';
+  }
+
   document.getElementById('labelPreview').innerHTML = html;
   document.getElementById('previewCard').style.display = 'block';
   document.getElementById('previewCard').scrollIntoView({behavior:'smooth'});
+  showToast(tudoAusente ? 'Etiqueta gerada, mas nenhum componente está presente.' : 'Etiqueta gerada com sucesso.', tudoAusente ? 'error' : 'success');
+ }catch(err){
+  console.error('Erro ao gerar etiqueta:', err);
+  showToast('Não foi possível gerar a etiqueta. Recarregue a página e tente novamente.', 'error');
+ }
 }
 document.getElementById('generateBtn').addEventListener('click', gerarEtiqueta);
-document.getElementById('printBtn').addEventListener('click', () => window.print());
+document.getElementById('printBtn').addEventListener('click', () => {
+  try{ window.print(); }
+  catch(err){ showToast('Não foi possível abrir a impressão neste navegador.', 'error'); }
+});
 </script>
 </body>
 </html>
